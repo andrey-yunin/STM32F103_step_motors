@@ -1,4 +1,4 @@
-/*
+ /*
  * task_tmc2209_manager.c
  *
  *  Created on: Dec 8, 2025
@@ -28,6 +28,7 @@ void app_start_task_tmc2209_manager(void *argument)
 	 // Ждем небольшую паузу, чтобы все остальные части системы успели запуститься
 	 osDelay(100);
 
+/*
 	 // --- Инициализация всех 8-ми драйверов ---
 	 for (uint8_t i = 0; i < MOTOR_COUNT; i++)
 		 {
@@ -44,6 +45,19 @@ void app_start_task_tmc2209_manager(void *argument)
 
 		 }
 
+*/
+
+	 // --- Инициализация первых 4-х драйверов ---
+	 for (uint8_t i = 0; i < 4; i++) // Пока только первые 4 для теста
+		 {
+		 UART_HandleTypeDef* huart_ptr = &huart1;
+		 uint8_t slave_addr = i;
+		 TMC2209_Init(&tmc_drivers[i], huart_ptr, slave_addr);
+
+		 // Раскомментируйте эти строки
+		 TMC2209_SetMotorCurrent(&tmc_drivers[i], 70, 40); // 70% рабочий ток, 40% ток удержания
+		 TMC2209_SetMicrosteps(&tmc_drivers[i], 16);
+		 }
 
 	// Бесконечный цикл задачи
 

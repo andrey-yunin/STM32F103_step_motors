@@ -51,7 +51,6 @@ typedef struct {
     uint32_t acceleration_steps_per_sec2;
     } MotionCommand_t;
 
-
 // Структура для хранения полного Rx CAN-фрейма (header + data)
 typedef struct {
 	CAN_RxHeaderTypeDef header;
@@ -63,8 +62,6 @@ typedef struct {
 	CAN_TxHeaderTypeDef header;
 	uint8_t data[CAN_DATA_MAX_LEN];
     } CanTxFrame_t;
-
-
 
 
 #endif // APP_CONFIG_H

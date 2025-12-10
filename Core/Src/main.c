@@ -30,6 +30,7 @@
 #include "app_config.h"
 #include "command_protocol.h"
 #include "tmc2209_driver.h" // Для типа TMC2209_Handle_t
+#include "app_globals.h"
 
 
 
@@ -96,9 +97,6 @@ osMessageQueueId_t can_tx_queueHandle;
 osMessageQueueId_t parser_queueHandle;
 osMessageQueueId_t motion_queueHandle;
 osMessageQueueId_t tmc_manager_queueHandle;
-
-// Массив хэндлов для 8-ми драйверов TMC2209
-TMC2209_Handle_t tmc_drivers[MOTOR_COUNT];
 
 /* USER CODE END PV */
 

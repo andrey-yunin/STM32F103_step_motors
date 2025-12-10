@@ -3357,6 +3357,1336 @@
 
   Готовы?
   
+  > да, можем продолжить
+
+✦ Отлично! Приступаем к Этапу 2: Реализация базовой логики.
+
+  Начнем с "оживления" наших драйверов TMC2209.
+
+  ---
+
+  Этап 2.1: Инициализация драйверов в Task_TMC_Manager
+
+  1. Объявление массива драйверов
+
+  Сначала нам нужен глобальный массив, в котором будут храниться "объекты" (хэндлы) для каждого из 8-ми драйверов.
+
+   * Откройте файл `Core/Src/main.c`.
+   * Найдите секцию /* USER CODE BEGIN PV */ (где мы объявляли хэндлы очередей).
+   * Добавьте туда следующие строки:
+
+   1 /* USER CODE BEGIN PV */
+   2 // ... хэндлы очередей ...
+   3 
+   4 #include "tmc2209_driver.h" // Для типа TMC2209_Handle_t
+   5 
+   6 // Массив хэндлов для 8-ми драйверов TMC2209
+   7 TMC2209_Handle_t tmc_drivers[MOTOR_COUNT];
+   8 /* USER CODE END PV */
+  (Не забудьте добавить `#include "tmc2209_driver.h"` в секцию `USER CODE BEGIN Includes` в `main.c`, если его там еще нет)
+
+  ---
+
+  2. Реализация логики инициализации
+
+  Теперь напишем код, который при старте задачи Task_TMC_Manager пройдет по всем драйверам и инициализирует их.
+
+   * Откройте файл `App/src/tasks/task_tmc2209_manager.c`.
+   * Замените содержимое функции app_start_task_tmc2209_manager на следующий код:
+
+    1 #include "task_tmc2209_manager.h"
+    2 #include "main.h"
+    3 #include "cmsis_os.h"
+    4 #include "tmc2209_driver.h"
+    5 #include "app_config.h" // Для MOTOR_COUNT
+    6 #include "app_queues.h"
+    7 
+    8 // Внешние переменные, объявленные в main.c
+    9 extern TMC2209_Handle_t tmc_drivers[MOTOR_COUNT];
+   10 extern UART_HandleTypeDef huart1; // Хэндл UART1
+   11 extern UART_HandleTypeDef huart2; // Хэндл UART2
+   12 
+   13 void app_start_task_tmc2209_manager(void *argument)
+   14 {
+   15     // Ждем небольшую паузу, чтобы все остальные части системы успели запуститься
+   16     osDelay(100);
+   17 
+   18     // --- Инициализация всех 8-ми драйверов ---
+   19     for (uint8_t i = 0; i < MOTOR_COUNT; i++)
+   20     {
+   21         UART_HandleTypeDef* huart_ptr = (i < 4) ? &huart1 : &huart2; // Моторы 0-3 на UART1, 4-7 на UART2
+   22         uint8_t slave_addr = i % 4; // Адрес на шине (0, 1, 2, 3)
+   23 
+   24         TMC2209_Init(&tmc_drivers[i], huart_ptr, slave_addr);
+   25 
+   26         // Здесь мы будем вызывать функции настройки.
+   27         // Пока они не реализованы в tmc2209_driver.c,
+   28         // они будут возвращать ошибку, но это нормально.
+   29         // TMC2209_SetMotorCurrent(&tmc_drivers[i], 80, 50);
+   30         // TMC2209_SetMicrosteps(&tmc_drivers[i], 16);
+   31     }
+   32 
+   33     // Бесконечный цикл задачи
+   34     for(;;)
+   35     {
+   36         // Пока оставляем пустым. Здесь будет обработка команд из tmc_manager_queue
+   37         osDelay(1000);
+   38     }
+   39 }
+
+  ---
+
+  После того как вы внесете эти изменения, соберите проект. Он должен скомпилироваться.
+
+  Далее мы перейдем к tmc2209_driver.c и напишем реализацию для функции TMC2209_SetMotorCurrent.
+
+  Сообщите, когда будете готовы.
+
+> почему мы не добавляем этот инклюд #include "tmc2209_driver.h" // Для типа TMC2209_Handle_t в секции  юзер инклюд ?
+
+✕ [API Error: [{
+    "error": {
+      "code": 429,
+      "message": "Resource exhausted. Please try again later. Please refer to https://cloud.google.com/vertex-ai/generative-ai/docs/error-code-429 for more details.",
+      "errors": [
+        {
+          "message": "Resource exhausted. Please try again later. Please refer to https://cloud.google.com/vertex-ai/generative-ai/docs/error-code-429 for more details.",
+          "domain": "global",
+          "reason": "rateLimitExceeded"
+        }
+      ],
+      "status": "RESOURCE_EXHAUSTED"
+    }
+  }
+  ]]
+  Possible quota limitations in place or slow response times detected. Switching to the gemini-2.5-flash model for the rest of this session.
+
+
+> что то пошло не так
+
+✕ [API Error: [{
+    "error": {
+      "code": 429,
+      "message": "Resource exhausted. Please try again later. Please refer to https://cloud.google.com/vertex-ai/generative-ai/docs/error-code-429 for more details.",
+      "errors": [
+        {
+          "message": "Resource exhausted. Please try again later. Please refer to https://cloud.google.com/vertex-ai/generative-ai/docs/error-code-429 for more details.",
+          "domain": "global",
+          "reason": "rateLimitExceeded"
+        }
+      ],
+      "status": "RESOURCE_EXHAUSTED"
+    }
+  }
+  ]]
+  Possible quota limitations in place or slow response times detected. Switching to the gemini-2.5-flash model for the rest of this session.
+
+
+> готово
+
+✕ [API Error: [{
+    "error": {
+      "code": 429,
+      "message": "Resource exhausted. Please try again later. Please refer to https://cloud.google.com/vertex-ai/generative-ai/docs/error-code-429 for more details.",
+      "errors": [
+        {
+          "message": "Resource exhausted. Please try again later. Please refer to https://cloud.google.com/vertex-ai/generative-ai/docs/error-code-429 for more details.",
+          "domain": "global",
+          "reason": "rateLimitExceeded"
+        }
+      ],
+      "status": "RESOURCE_EXHAUSTED"
+    }
+  }
+  ]]
+  Possible quota limitations in place or slow response times detected. Switching to the gemini-2.5-flash model for the rest of this session.
+
+
+> готово, мы можемдвигаться дальше
+
+✦ Отлично! Теперь, когда Task_TMC_Manager готов вызывать функции настройки, давайте их реализуем.
+
+  ---
+
+  Этап 2.2: Реализация функций настройки в tmc2209_driver.c
+
+  Сейчас функции TMC2209_SetMotorCurrent и TMC2209_SetMicrosteps являются "заглушками" и возвращают HAL_ERROR. Нам нужно добавить в них реальную логику.
+
+  1. Реализация `TMC2209_SetMotorCurrent`
+
+  Эта функция будет рассчитывать значения для регистров IHOLD и IRUN исходя из процентов, которые мы передаем.
+
+   * Откройте файл `App/src/tmc2209_driver.c`.
+   * Найдите функцию TMC2209_SetMotorCurrent и замените ее следующим кодом:
+
+    1 /**
+    2   * @brief Устанавливает ток удержания (hold) и рабочий ток (run) для драйвера TMC2209.
+    3   * @param htmc Указатель на структуру TMC2209_Handle_t.
+    4   * @param run_current_percent Процент от максимального тока для рабочего режима (1-100%).
+    5   * @param hold_current_percent Процент от максимального тока для режима удержания (0-100%).
+    6   * @retval HAL_StatusTypeDef HAL_OK если успешно, иначе код ошибки.
+    7   */
+    8 HAL_StatusTypeDef TMC2209_SetMotorCurrent(TMC2209_Handle_t* htmc, uint8_t run_current_percent, uint8_t hold_current_percent) {
+    9     if (htmc == NULL || run_current_percent == 0 || run_current_percent > 100 || hold_current_percent > 100) {
+   10         return HAL_ERROR;
+   11     }
+   12 
+   13     // Рекомендуемые значения для IHOLD и IRUN
+   14     // IHOLD = 0..31 (ток удержания)
+   15     // IRUN = 0..31 (рабочий ток)
+   16     // TPOWERDOWN = 0..255 (задержка перед снижением тока до IHOLD)
+   17     // Значение 31 соответствует ~99% от максимального тока, 1 - ~32%
+   18     // Ток вычисляется: Current_RMS = (IRUN+1)/32 * (Vsense/R_Sense) / 1.41
+   19     // Мы упрощаем и просто масштабируем 0-31 на 0-100%.
+   20 
+   21     uint8_t ihold = (uint8_t)((float)hold_current_percent / 100.0f * 31.0f);
+   22     uint8_t irun = (uint8_t)((float)run_current_percent / 100.0f * 31.0f);
+   23     uint8_t tpowerdown = 10; // 1 секунда (10*100мс) - время, через которое ток снижается до IHOLD после остановки
+   24 
+   25     // Регистр IHOLD_IRUN: TPOWERDOWN:24, IHOLD:16, IRUN:8, TSTRT:0
+   26     uint32_t value = ((uint32_t)tpowerdown << 24) | ((uint32_t)ihold << 16) | ((uint32_t)irun << 8) | (0x4 << 0); // TSTRT=4
+   27 
+   28     return TMC2209_WriteRegister(htmc, TMC2209_IHOLD_IRUN, value);
+   29 }
+
+  ---
+
+  2. Реализация `TMC2209_SetMicrosteps`
+
+  Эта функция будет устанавливать разрешение микрошага (например, 1/16, 1/256).
+
+   * В том же файле `App/src/tmc2209_driver.c`.
+   * Найдите функцию TMC2209_SetMicrosteps и замените ее следующим кодом:
+
+    1 /**
+    2   * @brief Устанавливает разрешение микрошага для драйвера TMC2209.
+    3   * @param htmc Указатель на структуру TMC2209_Handle_t.
+    4   * @param microsteps Количество микрошагов (1, 2, 4, 8, 16, 32, 64, 128, 256).
+    5   * @retval HAL_StatusTypeDef HAL_OK если успешно, иначе код ошибки.
+    6   */
+    7 HAL_StatusTypeDef TMC2209_SetMicrosteps(TMC2209_Handle_t* htmc, uint16_t microsteps) {
+    8     if (htmc == NULL) {
+    9         return HAL_ERROR;
+   10     }
+   11 
+   12     // MRES - Microstep Resolution
+   13     // 0: 256 microsteps (default)
+   14     // 1: 128 microsteps
+   15     // 2: 64 microsteps
+   16     // 3: 32 microsteps
+   17     // 4: 16 microsteps
+   18     // 5: 8 microsteps
+   19     // 6: 4 microsteps
+   20     // 7: 2 microsteps
+   21     // 8: Fullstep
+   22 
+   23     uint32_t mres_val = 0; // По умолчанию 256
+   24     switch (microsteps) {
+   25         case 256: mres_val = 0; break;
+   26         case 128: mres_val = 1; break;
+   27         case 64:  mres_val = 2; break;
+   28         case 32:  mres_val = 3; break;
+   29         case 16:  mres_val = 4; break;
+   30         case 8:   mres_val = 5; break;
+   31         case 4:   mres_val = 6; break;
+   32         case 2:   mres_val = 7; break;
+   33         case 1:   mres_val = 8; break;
+   34         default: return HAL_ERROR; // Неподдерживаемое значение микрошага
+   35     }
+   36 
+   37     // Регистр CHOPCONF. Нам нужен только бит MRES (биты 24-27).
+   38     // Сначала читаем текущее значение регистра, чтобы не перезаписать другие настройки
+   39     uint32_t chopconf_reg;
+   40     if (TMC2209_ReadRegister(htmc, TMC2209_CHOPCONF, &chopconf_reg) != HAL_OK) {
+   41         // Если не удалось прочитать, попробуем записать напрямую (может быть, регистр сброшен)
+   42         chopconf_reg = 0; // Или дефолтное значение
+   43     }
+   44 
+   45     // Очищаем биты MRES и устанавливаем новое значение
+   46     chopconf_reg &= ~((uint32_t)0xF << 24); // Очистка MRES (биты 24-27)
+   47     chopconf_reg |= (mres_val << 24);
+   48 
+   49     return TMC2209_WriteRegister(htmc, TMC2209_CHOPCONF, chopconf_reg);
+   50 }
+
+  ---
+
+  После внесения этих изменений, соберите проект. Он должен успешно скомпилироваться.
+
+  Теперь функция app_start_task_tmc2209_manager сможет корректно вызывать TMC2209_SetMotorCurrent и TMC2209_SetMicrosteps, и эти вызовы будут что-то делать!
+
+  Сообщите, когда будете готовы двигаться дальше.
+
+> скажм есть ограничения по количеству потоков FREERTOS для STM32F103?
+
+✕ [API Error: [{
+    "error": {
+      "code": 429,
+      "message": "Resource exhausted. Please try again later. Please refer to https://cloud.google.com/vertex-ai/generative-ai/docs/error-code-429 for more details.",
+      "errors": [
+        {
+          "message": "Resource exhausted. Please try again later. Please refer to https://cloud.google.com/vertex-ai/generative-ai/docs/error-code-429 for more details.",
+          "domain": "global",
+          "reason": "rateLimitExceeded"
+        }
+      ],
+      "status": "RESOURCE_EXHAUSTED"
+    }
+  }
+  ]]
+  Possible quota limitations in place or slow response times detected. Switching to the gemini-2.5-flash model for the rest of this session.
+
+
+> вопрос: есть ли ограничения по количеству задач FREERTOS для STM32F103?
+
+✦ Отличный вопрос.
+
+  Прямого жесткого ограничения в документации FreeRTOS, вроде "не более 16 задач", не существует. Ограничения носят практический характер и упираются в два основных ресурса вашего
+  микроконтроллера STM32F103:
+
+   1. Оперативная память (RAM) — Самое главное ограничение.
+   2. Процессорное время (CPU) — "Мягкое" ограничение.
+
+  ---
+
+  1. Ограничение по RAM (20 КБ на вашем STM32F103C8T6)
+
+  Это самый строгий и понятный лимит. Каждая созданная задача потребляет оперативную память из двух источников:
+
+   * Блок управления задачей (TCB - Task Control Block): Небольшая структура, которую FreeRTOS создает для каждой задачи, чтобы хранить ее состояние (приоритет, статус и т.д.). Ее размер
+     фиксирован, около 70-100 байт.
+   * Стек задачи: Это область памяти, выделяемая для локальных переменных, вызовов функций и сохранения контекста задачи. Размер стека вы задаете сами при создании задачи, и это — основной
+     потребитель RAM.
+
+  Пример из нашего проекта:
+   * TaskMotionController со стеком 256 слов = 256 * 4 = 1024 байта.
+   * TaskCommandParser со стеком 256 слов = 1024 байта.
+   * TaskCANHandler со стеком 128 слов = 512 байт.
+   * TaskTMCManager со стеком 256 слов = 1024 байта.
+
+  Только на стеки наших 4-х задач уходит уже 1024+1024+512+1024 = 3584 байта. Добавьте к этому кучу FreeRTOS (у нас 4096 байт), глобальные переменные, буферы HAL... и вы увидите, как быстро
+  расходуются 20 КБ памяти.
+
+  Вывод: Вы можете создавать задачи до тех пор, пока у вас не закончится оперативная память. Мы уже сталкивались с этой проблемой, когда компилятор выдавал ошибку "RAM overflowed".
+
+  2. Ограничение по процессорному времени
+
+  Каждый раз, когда FreeRTOS переключается с одной задачи на другую (это называется "переключение контекста"), она тратит очень небольшое, но не нулевое количество тактов процессора.
+
+  Если у вас будет ОЧЕНЬ много задач (десятки), которые постоянно активны и хотят выполняться, процессор может начать тратить значительную часть времени не на полезную работу внутри задач, а
+  на постоянное переключение между ними. Это может привести к тому, что задачи начнут "не успевать" выполнять свою работу в срок.
+
+  Вывод: Для нашего проекта с 4-5 хорошо спланированными задачами это абсолютно не является проблемой. Ограничение по CPU становится актуальным для очень сложных систем с десятками активных
+  потоков.
+
+  Итог
+
+  На практике, для STM32F103C8T6 с его 20 КБ RAM, разумное количество задач — от 5 до 15, в зависимости от сложности каждой задачи и размера их стеков. Наши 4 задачи — это абсолютно
+  нормальное и правильное количество для такой системы.
+
+> была ли такая проблема раньше?
+
+✕ [API Error: Cannot read properties of undefined (reading 'error')]
+
+
+> сделано
+
+✕ [API Error: Cannot read properties of undefined (reading 'error')]
+
+
+> готово, можем дальше двигаться по плану
+
+✦ Да, абсолютно. Проблема ограниченности ресурсов (особенно оперативной памяти) — это фундаментальная и постоянная проблема в разработке встраиваемых систем.
+
+  Исторически микроконтроллеры имели еще меньше памяти (сотни байт RAM, килобайты Flash), и каждый байт приходилось считать. Появление операционных систем реального времени (RTOS) сделало
+  разработку сложнее в этом отношении, так как сама RTOS и каждая задача потребляют ресурсы.
+
+  Так что, да, это "вечная" проблема, которую инженеры решают оптимизацией кода и рациональным использованием ресурсов.
+✕ [API Error: read ETIMEDOUT]
+
+
+> ok я создал нужные файлы, проект соберается можем двигаться дальше
+
+✦ Да, такая проблема была и будет всегда в embedded-разработке. Ограничения по памяти — это одна из самых частых и "любимых" проблем, с которыми сталкиваются инженеры микроконтроллеров. Мы
+  уже наткнулись на нее, когда у нас не собирался проект из-за большого FreeRTOS heap.
+
+  Именно поэтому так важен аудит памяти, о котором мы говорили. Нужно постоянно помнить о том, сколько каждая задача потребляет стека и сколько всего памяти уходит на кучу, очереди,
+  глобальные переменные и периферию.
+
+  ---
+
+  Отлично, что вы внесли изменения в tmc2209_driver.c, и проект собирается!
+
+  Теперь мы можем перейти к Этапу 2.2: Реализация `Task_CAN_Handler`.
+
+  Эта задача будет связующим звеном между аппаратурой CAN и остальными задачами. Она будет принимать сырые CAN-фреймы от прерывания и передавать их в Task_Command_Parser, а также отправлять
+  CAN-сообщения по запросу других задач.
+
+  ---
+
+  Этап 2.2: Реализация Task_CAN_Handler
+
+  1. Файл `App/src/tasks/task_can_handler.c`
+
+  Откройте файл `App/src/tasks/task_can_handler.c`.
+
+   * Добавьте необходимые инклюды.
+   * Замените содержимое функции app_start_task_can_handler на следующий код:
+
+    1 #include "task_can_handler.h"
+    2 #include "main.h"           // Для HAL-функций, CAN_HandleTypeDef, UART_HandleTypeDef
+    3 #include "cmsis_os.h"       // Для osDelay, osMessageQueueXxx
+    4 #include "app_queues.h"     // Для хэндлов очередей
+    5 #include "command_protocol.h" // Для CAN_Command_t
+    6 
+    7 // --- Внешние хэндлы HAL ---
+    8 extern CAN_HandleTypeDef hcan; // Хэндл CAN-периферии из main.c
+    9 
+   10 void app_start_task_can_handler(void *argument)
+   11 {
+   12     (void)argument;
+   13 
+   14     CAN_RxHeaderTypeDef rxHeader;
+   15     uint8_t rxData[8];
+   16 
+   17     CAN_TxHeaderTypeDef txHeader;
+   18     uint32_t txMailbox;
+   19     uint8_t txData[8];
+   20 
+   21     // --- Настройка CAN-фильтров ---
+   22     // Это очень важный шаг, чтобы CAN-контроллер принимал только нужные сообщения.
+   23     // Пока что настроим простой фильтр, который принимает ВСЁ,
+   24     // но в будущем здесь будет логика для фильтрации по Performer_ID.
+   25     CAN_FilterTypeDef sFilterConfig;
+   26 
+   27     sFilterConfig.FilterBank = 0;
+   28     sFilterConfig.FilterMode = CAN_FILTERMODE_IDMASK;
+   29     sFilterConfig.FilterScale = CAN_FILTERSCALE_32BIT;
+   30     sFilterConfig.FilterIdHigh = 0x0000;
+   31     sFilterConfig.FilterIdLow = 0x0000;
+   32     sFilterConfig.FilterMaskIdHigh = 0x0000;
+   33     sFilterConfig.FilterMaskIdLow = 0x0000;
+   34     sFilterConfig.FilterFIFOAssignment = CAN_RX_FIFO0;
+   35     sFilterConfig.FilterActivation = ENABLE;
+   36     sFilterConfig.SlaveStartFilterBank = 14;
+   37 
+   38     if (HAL_CAN_ConfigFilter(&hcan, &sFilterConfig) != HAL_OK) {
+   39         Error_Handler(); // Проблема с настройкой фильтра
+   40     }
+   41 
+   42     // --- Запуск CAN-контроллера ---
+   43     if (HAL_CAN_Start(&hcan) != HAL_OK) {
+   44         Error_Handler(); // Проблема с запуском CAN
+   45     }
+   46 
+   47     // --- Активация CAN RX прерываний ---
+   48     // Это позволит прерыванию CAN_RX_FIFO0_MSG_PENDING_IT срабатывать
+   49     // и передавать данные в can_rx_queue
+   50     if (HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING) != HAL_OK) {
+   51         Error_Handler();
+   52     }
+   53 
+   54 
+   55     // Бесконечный цикл задачи
+   56     for(;;)
+   57     {
+   58         // --- 1. Обработка входящих сообщений (RX) ---
+   59         // Ждем сырой CAN-фрейм от прерывания
+   60         if (osMessageQueueGet(can_rx_queueHandle, &rxData, NULL, osWaitForever) == osOK) {
+   61             // Если получили сообщение, то нужно его отправить в parser_queue
+   62             // Пока просто залогируем или посветим светодиодом
+   63             // ... В будущем здесь будет преобразование rxData в CAN_Command_t и отправка в parser_queueHandle ...
+   64             // osMessageQueuePut(parser_queueHandle, &parsed_command, 0, 0);
+   65         }
+   66 
+   67         // --- 2. Обработка исходящих сообщений (TX) ---
+   68         // Ждем сообщение на отправку от других задач
+   69         if (osMessageQueueGet(can_tx_queueHandle, &txData, NULL, 0) == osOK) { // 0 - не блокировать, если очередь пуста
+   70             // Здесь формируем txHeader
+   71             txHeader.StdId = 0x100; // Пример ID
+   72             txHeader.ExtId = 0;
+   73             txHeader.RTR = CAN_RTR_DATA;
+   74             txHeader.IDE = CAN_ID_STD;
+   75             txHeader.DLC = 8; // Длина данных
+   76 
+   77             // Пробуем добавить сообщение в очередь CAN на передачу
+   78             if (HAL_CAN_AddTxMessage(&hcan, &txHeader, txData, &txMailbox) != HAL_OK) {
+   79                 // Ошибка при отправке сообщения (например, очередь TX переполнена)
+   80             }
+   81         }
+   82 
+   83         osDelay(1); // Небольшая задержка, чтобы не нагружать процессор без надобности
+   84     }
+   85 }
+
+  ---
+
+  2. Добавление `HAL_CAN_RxFifo0MsgPendingCallback`
+
+  Теперь нам нужно создать функцию обратного вызова (callback), которая будет срабатывать, когда CAN-контроллер примет сообщение и положит его в FIFO0. Эта функция будет запускаться из
+  прерывания.
+
+   * Откройте файл `Core/Src/stm32f1xx_it.c`.
+   * Найдите секцию /* USER CODE BEGIN 0 */.
+   * Добавьте туда инклюды и extern-объявление хэндла очереди:
+
+   1 /* USER CODE BEGIN 0 */
+   2 #include "main.h"
+   3 #include "cmsis_os.h"
+   4 #include "app_queues.h" // Для can_rx_queueHandle
+   5 // extern osMessageQueueId_t can_rx_queueHandle; // Уже объявлен extern в app_queues.h
+   6 /* USER CODE END 0 */
+
+   * Затем найдите функцию `CAN1_RX0_IRQHandler`. Она должна быть сгенерирована CubeMX. Внутри нее будет вызов HAL_CAN_IRQHandler.
+   * Теперь нам нужно добавить нашу callback-функцию. Найдите секцию /* USER CODE BEGIN 1 */ в конце файла и добавьте туда следующую функцию:
+
+    1 /* USER CODE BEGIN 1 */
+    2 // Callback-функция, вызываемая, когда в FIFO0 CAN1 появляется новое сообщение
+    3 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
+    4 {
+    5     CAN_RxHeaderTypeDef rxHeader;
+    6     uint8_t rxData[8];
+    7 
+    8     // Получаем сообщение из CAN FIFO0
+    9     if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &rxHeader, rxData) == HAL_OK)
+   10     {
+   11         // Передаем данные в очередь can_rx_queue для обработки задачей Task_CAN_Handler
+   12         // Очередь должна быть способна принять сырые 8 байт данных.
+   13         // Передача из ISR должна быть "from ISR" (isr-safe) функцией FreeRTOS.
+   14         osMessageQueuePut(can_rx_queueHandle, &rxData, 0, 0); // priority 0, timeout 0 (немедленно)
+   15     }
+   16 }
+   17 /* USER CODE END 1 */
+
+  ---
+
+  После этих изменений соберите проект. Сообщите, когда будете готовы двигаться дальше.
+
+> функция CANCAN1_RX0_IRQHandler не сгенерирована. Может быть порблема потому что не выставлены прерывания в настройках NVIC Setting?
+
+✦ Да, вы совершенно правы. Это на 100% причина проблемы.
+
+  Я упустил этот момент в первоначальных инструкциях, моя ошибка. Чтобы обработчик прерывания CAN1_RX0_IRQHandler был сгенерирован, его нужно разрешить на уровне контроллера прерываний
+  (NVIC).
+
+  HAL_CAN_ActivateNotification говорит "Я хочу получать уведомления", а настройка NVIC говорит "А я разрешаю этим уведомлениям доходить до процессора".
+
+  Как это исправить:
+
+   1. Откройте ваш .ioc файл в STM32CubeMX.
+   2. Перейдите в Pinout & Configuration.
+   3. В левой панели выберите Peripherals -> CAN.
+   4. В центральном окне выберите вкладку `NVIC Settings`.
+   5. Найдите строку `CAN1 RX0 interrupts` и поставьте напротив нее галочку `Enabled`.
+   6. Сохраните .ioc файл и сгенерируйте код.
+
+  После этого в файле Core/Src/stm32f1xx_it.c появится сгенерированная функция CAN1_RX0_IRQHandler, и код, который я давал ранее, можно будет в нее вставлять.
+
+> ок, функци появилась, продолжаю дальше
+
+✕ [API Error: [{
+    "error": {
+      "code": 429,
+      "message": "Resource exhausted. Please try again later. Please refer to https://cloud.google.com/vertex-ai/generative-ai/docs/error-code-429 for more details.",
+      "errors": [
+        {
+          "message": "Resource exhausted. Please try again later. Please refer to https://cloud.google.com/vertex-ai/generative-ai/docs/error-code-429 for more details.",
+          "domain": "global",
+          "reason": "rateLimitExceeded"
+        }
+      ],
+      "status": "RESOURCE_EXHAUSTED"
+    }
+  }
+  ]]
+  Possible quota limitations in place or slow response times detected. Switching to the gemini-2.5-flash model for the rest of this session.
+
+
+> ок, функция сгенерировалась и в ней появилась запись  HAL_CAN_IRQHandler(&hcan);
+
+✦ Отлично! Все именно так, как и должно быть.
+
+  Пояснение, как это работает:
+
+   * `CAN1_RX0_IRQHandler()`: Это "главная" функция-обработчик прерывания от CAN. Она вызывается аппаратно, когда происходит событие.
+   * `HAL_CAN_IRQHandler(&hcan)`: Это универсальный обработчик из библиотеки HAL. Он определяет, какое именно событие произошло (пришло сообщение, произошла ошибка и т.д.), и вызывает
+     соответствующую "слабую" (__weak) callback-функцию.
+
+  Наша задача — переопределить нужную нам callback-функцию, чтобы выполнить наше действие.
+
+  ---
+
+  Добавление Callback-функции
+
+  Теперь мы можем вернуться к нашему предыдущему плану.
+
+   * Откройте файл `Core/Src/stm32f1xx_it.c`.
+   * Найдите секцию /* USER CODE BEGIN 0 */ (в самом верху файла).
+   * Убедитесь, что там есть все необходимые инклюды:
+
+   1 /* USER CODE BEGIN 0 */
+   2 #include "main.h"
+   3 #include "cmsis_os.h"
+   4 #include "app_queues.h"
+   5 /* USER CODE END 0 */
+
+   * Теперь найдите секцию /* USER CODE BEGIN 1 */ (обычно она в конце файла).
+   * Добавьте туда нашу функцию HAL_CAN_RxFifo0MsgPendingCallback:
+
+    1 /* USER CODE BEGIN 1 */
+    2 
+    3 // Callback-функция, вызываемая, когда в FIFO0 CAN1 появляется новое сообщение
+    4 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
+    5 {
+    6     CAN_RxHeaderTypeDef rxHeader;
+    7     uint8_t rxData[8];
+    8 
+    9     // Извлекаем сообщение из аппаратного буфера CAN FIFO0
+   10     if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &rxHeader, rxData) == HAL_OK)
+   11     {
+   12         // Помещаем полученные 8 байт данных в нашу очередь can_rx_queue
+   13         // для дальнейшей обработки задачей Task_CAN_Handler.
+   14         // Функция osMessageQueuePut - потокобезопасна и может вызываться из прерываний.
+   15         osMessageQueuePut(can_rx_queueHandle, &rxData, 0, 0);
+   16     }
+   17 }
+   18 
+   19 /* USER CODE END 1 */
+
+  ---
+
+  После этого соберите проект. Теперь аппаратная часть CAN полностью связана с нашей Task_CAN_Handler через can_rx_queue.
+
+  Сообщите, когда будет готово.
+
+> проект собирается с предупреждением ../App/src/tasks/task_can_handler.c:21:29: warning: unused variable 'rxHeader' [-Wunused-variable]
+
+✦ Это предупреждение абсолютно нормально на данном этапе.
+
+  Пояснение:
+
+   * warning: unused variable 'rxHeader' [-Wunused-variable] означает, что вы объявили переменную rxHeader в App/src/tasks/task_can_handler.c, но пока ее не используете.
+   * Это происходит потому, что сейчас мы кладем в очередь can_rx_queueHandle только 8 байт rxData. В будущем, когда мы будем полностью обрабатывать CAN-фрейм, rxHeader будет содержать
+     важную информацию (CAN ID, DLC - длину данных) и будет активно использоваться.
+
+  Это не ошибка, а просто предупреждение компилятора, которое исчезнет, как только мы начнем использовать rxHeader в логике Task_CAN_Handler.
+
+  ---
+
+  Отлично! Теперь вся система приема CAN-сообщений настроена от аппаратного уровня до постановки в очередь can_rx_queueHandle.
+
+  ---
+
+  Мы завершили Этап 2.2: Реализация `Task_CAN_Handler` (получение сообщений).
+
+  Далее у нас по плану Этап 2.3: Реализация `Task_Command_Parser`. Эта задача будет принимать сообщения от Task_CAN_Handler и распределять их по другим задачам.
+
+  Готовы?
+
+> да, можем двигаться дальше
+
+✦ Отлично! Переходим к Этапу 2.3: Реализация `Task_Command_Parser`.
+
+  Эта задача будет центральным "диспетчером" команд. Она принимает уже обработанные CAN-команды от Task_CAN_Handler и, в зависимости от их типа, отправляет их в нужную очередь для других
+  задач.
+
+  ---
+
+  Этап 2.3: Реализация Task_Command_Parser
+
+  1. Файл `App/src/tasks/task_command_parser.c`
+
+  Откройте файл `App/src/tasks/task_command_parser.c`.
+
+   * Убедитесь, что там есть необходимые инклюды.
+   * Замените содержимое функции app_start_task_command_parser на следующий код:
+
+    1 #include "task_command_parser.h"
+    2 #include "main.h"             // Для HAL-функций
+    3 #include "cmsis_os.h"         // Для osDelay, osMessageQueueXxx
+    4 #include "command_protocol.h" // Для CAN_Command_t, CommandID_t
+    5 #include "app_queues.h"       // Для хэндлов очередей
+    6 #include "app_config.h"       // Для MotionCommand_t
+    7 
+    8 // --- Внешние хэндлы HAL ---
+    9 // extern CAN_HandleTypeDef hcan; // Не нужен напрямую в этой задаче, так как Task_CAN_Handler уже обработал
+   10 
+   11 // --- Глобальная переменная для хранения ID исполнителя ---
+   12 // Пока просто заглушка, в будущем будет читаться из Flash
+   13 uint8_t g_performer_id = 0xFF; // 0xFF означает, что ID еще не установлен
+   14 
+   15 
+   16 void app_start_task_command_parser(void *argument)
+   17 {
+   18     (void)argument;
+   19 
+   20     CAN_Command_t received_command; // Буфер для принятой команды
+   21     MotionCommand_t motion_cmd;     // Буфер для команды движения
+   22 
+   23     // --- Логика определения ID исполнителя (пока заглушка) ---
+   24     // В будущем здесь будет чтение ID из Flash
+   25     g_performer_id = 0; // Для тестирования, примем, что наш ID = 0
+   26 
+   27 
+   28     // Бесконечный цикл задачи
+   29     for(;;)
+   30     {
+   31         // 1. Ждем команду из очереди parser_queue
+   32         if (osMessageQueueGet(parser_queueHandle, &received_command, NULL, osWaitForever) == osOK)
+   33         {
+   34             // --- 2. Фильтрация по Performer ID ---
+   35             // Если команда адресована конкретному исполнителю, а не всем
+   36             // (Motor_ID 0xFF означает широковещательную команду)
+   37             if (received_command.motor_id != 0xFF && (received_command.motor_id >> 3) != g_performer_id) {
+   38                 // Это не наша команда, игнорируем
+   39                 continue;
+   40             }
+   41 
+   42             // --- 3. Обработка команды ---
+   43             switch (received_command.command_id)
+   44             {
+   45                 case CMD_MOVE_ABSOLUTE:
+   46                 case CMD_MOVE_RELATIVE:
+   47                 case CMD_SET_SPEED:
+   48                 case CMD_SET_ACCELERATION:
+   49                 case CMD_STOP:
+   50                     // Команды движения - отправляем в очередь Task_Motion_Controller
+   51                     motion_cmd.motor_id = received_command.motor_id;
+   52                     motion_cmd.steps = received_command.payload; // Или что-то другое
+   53                     // ... заполнить остальные поля motion_cmd ...
+   54                     osMessageQueuePut(motion_queueHandle, &motion_cmd, 0, 0);
+   55                     break;
+   56 
+   57                 case CMD_GET_STATUS:
+   58                 case CMD_SET_CURRENT:
+   59                 case CMD_ENABLE_MOTOR:
+   60                     // Команды для TMC-драйверов - отправляем в очередь Task_TMC_Manager
+   61                     // Пока передадим CAN_Command_t напрямую
+   62                     osMessageQueuePut(tmc_manager_queueHandle, &received_command, 0, 0);
+   63                     break;
+   64 
+   65                 case CMD_PERFORMER_ID_SET:
+   66                     // Команда установки ID исполнителя (для провизионинга)
+   67                     // (received_command.payload будет содержать новый ID)
+   68                     // В будущем здесь будет логика записи в Flash и перезагрузки
+   69                     g_performer_id = (uint8_t)received_command.payload;
+   70                     // ... отправить подтверждение через can_tx_queue ...
+   71                     break;
+   72 
+   73                 default:
+   74                     // Неизвестная команда
+   75                     // ... Отправить ошибку через can_tx_queue ...
+   76                     break;
+   77             }
+   78         }
+   79 
+   80         osDelay(1); // Небольшая задержка, чтобы не нагружать процессор без надобности
+   81     }
+   82 }
+
+  ---
+
+  Важное дополнение:
+
+   * В функции HAL_CAN_RxFifo0MsgPendingCallback (в stm32f1xx_it.c) мы сейчас помещаем только rxData (8 байт) в can_rx_queueHandle.
+   * Однако, чтобы Task_Command_Parser мог видеть Motor_ID и CommandID_t, нам нужно помещать в can_rx_queueHandle полную информацию о CAN-фрейме (ID, DLC, данные).
+
+  Давайте изменим тип элемента для can_rx_queueHandle, чтобы он мог хранить CAN_RxHeaderTypeDef + 8 байт данных.
+
+  ---
+
+  2. Обновление `App/inc/app_config.h`
+
+  Чтобы не использовать "магические числа" для размера элемента CAN-фрейма, давайте создадим структуру, которая будет содержать все необходимые данные.
+
+   * Откройте файл `App/inc/app_config.h`.
+   * Добавьте следующую структуру, например, перед MotionCommand_t:
+
+   1 // Структура для хранения полного CAN-фрейма (header + data)
+   2 typedef struct {
+   3     CAN_RxHeaderTypeDef header;
+   4     uint8_t data[CAN_DATA_MAX_LEN];
+   5 } CanFrame_t;
+
+  ---
+
+  3. Обновление `Core/Src/main.c` (создание `can_rx_queueHandle`)
+
+   * Откройте файл `Core/Src/main.c`.
+   * Найдите строку создания can_rx_queueHandle в секции /* USER CODE BEGIN 2 */.
+   * Замените ее на:
+
+   1 can_rx_queueHandle = osMessageQueueNew(CAN_RX_QUEUE_LEN, sizeof(CanFrame_t), NULL);
+
+  ---
+
+  4. Обновление `Core/Src/stm32f1xx_it.c` (Callback `HAL_CAN_RxFifo0MsgPendingCallback`)
+
+   * Откройте файл `Core/Src/stm32f1xx_it.c`.
+   * В функции HAL_CAN_RxFifo0MsgPendingCallback замените существующую логику на следующую, чтобы помещать в очередь полную структуру CanFrame_t:
+
+    1 #include "app_config.h" // <-- Добавьте инклюд, чтобы видеть CanFrame_t
+    2 
+    3 // Callback-функция, вызываемая, когда в FIFO0 CAN1 появляется новое сообщение
+    4 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
+    5 {
+    6     CanFrame_t rx_frame; // Используем нашу новую структуру
+    7 
+    8     // Извлекаем сообщение из аппаратного буфера CAN FIFO0
+    9     if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &rx_frame.header, rx_frame.data) == HAL_OK)
+   10     {
+   11         // Помещаем весь фрейм в очередь can_rx_queue для обработки
+   12         osMessageQueuePut(can_rx_queueHandle, &rx_frame, 0, 0); // priority 0, timeout 0 (немедленно)
+   13     }
+   14 }
+
+  ---
+
+  После этих изменений соберите проект. Сообщите, когда будете готовы двигаться дальше.
+
+> надо ли корректировать can_tx_queueHandle? структура фрейма будет как и в can_rx_queueHandle?
+
+✦ Это отличное замечание, вы абсолютно правы! Я упустил этот момент.
+
+  Да, can_tx_queueHandle тоже нужно корректировать.
+
+  Почему это важно:
+
+  Когда какая-либо задача (например, Task_Command_Parser) хочет отправить ответ, она должна сообщить Task_CAN_Handler не только ЧТО отправлять (8 байт данных), но и КУДА (с каким CAN ID).
+  Если мы будем передавать через очередь только 8 байт данных, информация о CAN ID будет потеряна.
+
+  Поэтому, по аналогии с can_rx_queueHandle, нам нужно создать структуру для исходящего CAN-фрейма.
+
+  ---
+
+  Действия по исправлению:
+
+  1. Обновление `App/inc/app_config.h`
+
+   * Откройте файл `App/inc/app_config.h`.
+   * Добавьте следующую структуру (можно рядом с CanFrame_t):
+
+   1 // Структура для хранения полного исходящего CAN-фрейма (header + data)
+   2 typedef struct {
+   3     CAN_TxHeaderTypeDef header;
+   4     uint8_t data[CAN_DATA_MAX_LEN];
+   5 } CanTxFrame_t;
+
+  ---
+
+  2. Обновление `Core/Src/main.c` (создание `can_tx_queueHandle`)
+
+   * Откройте файл `Core/Src/main.c`.
+   * Найдите строку создания can_tx_queueHandle в секции /* USER CODE BEGIN 2 */.
+   * Замените ее на:
+
+   1 can_tx_queueHandle = osMessageQueueNew(CAN_TX_QUEUE_LEN, sizeof(CanTxFrame_t), NULL);
+
+  ---
+
+  3. Как это будет использоваться (пример)
+
+  Теперь, когда, например, Task_Command_Parser захочет отправить ответ "команда выполнена", он сделает примерно следующее:
+
+    1 // Внутри Task_Command_Parser:
+    2 CanTxFrame_t response_frame;
+    3 
+    4 // Заполняем заголовок
+    5 response_frame.header.StdId = 0x200; // Ответный ID
+    6 response_frame.header.RTR = CAN_RTR_DATA;
+    7 response_frame.header.IDE = CAN_ID_STD;
+    8 response_frame.header.DLC = 2; // Длина данных
+    9 
+   10 // Заполняем данные
+   11 response_frame.data[0] = received_command.command_id; // ID выполненной команды
+   12 response_frame.data[1] = 0x01; // Статус "OK"
+   13 
+   14 // Отправляем весь фрейм в очередь на передачу
+   15 osMessageQueuePut(can_tx_queueHandle, &response_frame, 0, 0);
+
+  А Task_CAN_Handler в свою очередь заберет эту структуру CanTxFrame_t из can_tx_queueHandle и будет иметь всю информацию для вызова HAL_CAN_AddTxMessage().
+
+  Спасибо за очень важное уточнение! Теперь наша система очередей для CAN полная и корректная.
+
+  Соберите проект, чтобы убедиться, что все в порядке, и сообщите, когда будем готовы идти дальше.
+
+> поясни по структуре CAN фрейма: что содержит header? ID уйстройства? что содержит data?
+
+✦ Конечно, это очень важный вопрос для понимания CAN-связи в нашем проекте.
+
+  CAN-фрейм (или CAN-сообщение) состоит из нескольких частей, но для нас наиболее важны две основные: Арбитражное поле (header) и Поле данных (data).
+
+  1. Header (заголовок) - CAN_TxHeaderTypeDef / CAN_RxHeaderTypeDef
+
+  Эта структура содержит мета-информацию о сообщении — его "адрес" и некоторые атрибуты. Она несет не саму команду или данные, а информацию о том, КУДА идет сообщение и КАКОЕ оно.
+
+  Основные поля (в контексте нашего проекта):
+
+   * `StdId` (Standard ID - Стандартный идентификатор):
+       * Это 11-битный идентификатор CAN-сообщения.
+       * Именно здесь закодирован ID устройства (ID Исполнителя) и ID мотора.
+       * В нашем проекте мы договорились, что StdId будет формироваться так:
+          ID = 0x100 | (ID_Исполнителя << 3) | ID_Мотора
+       * Когда сообщение отправляется, StdId определяет его приоритет на шине (чем меньше значение, тем выше приоритет).
+       * Когда сообщение принимается, аппаратные фильтры CAN смотрят именно на StdId, чтобы решить, принять сообщение или проигнорировать.
+
+   * `IDE` (Identifier Type):
+       * Указывает, какой тип идентификатора используется: стандартный (11-бит, CAN_ID_STD) или расширенный (29-бит, CAN_ID_EXT).
+       * В нашем проекте мы используем `CAN_ID_STD`.
+
+   * `RTR` (Remote Transmission Request):
+       * Указывает, является ли фрейм фреймом данных (CAN_RTR_DATA) или удаленным фреймом (CAN_RTR_REMOTE). Удаленный фрейм — это запрос данных, а не передача.
+       * В нашем проекте в основном будут `CAN_RTR_DATA` (мы передаем данные-команды или данные-ответы).
+
+   * `DLC` (Data Length Code - Код длины данных):
+       * Это очень важное поле. Оно указывает, сколько байт фактических данных содержится в поле data этого фрейма.
+       * Значение может быть от 0 до 8. Если DLC=0, фрейм не содержит данных. Если DLC=8, содержит все 8 байт.
+       * Task_Command_Parser будет использовать DLC, чтобы знать, сколько байт данных нужно читать.
+
+  2. Data (поле данных) - uint8_t data[8]
+
+  Это поле содержит саму полезную нагрузку сообщения — то, что мы хотим передать. Максимальный размер этого поля — 8 байт (CAN_DATA_MAX_LEN).
+
+   * Что оно содержит в нашем проекте?
+       * Это содержимое нашей структуры CAN_Command_t, которую мы определили в command_protocol.h.
+       * Эта структура содержит:
+           * CommandID_t command_id: Что именно мы хотим сделать (например, CMD_MOVE_ABSOLUTE). Обычно занимает 1-й байт поля data.
+           * int32_t payload: Основной параметр для команды (например, целевая позиция, скорость, ток). Это 32-битное число, которое займет 4 байта поля data.
+       * Оставшиеся байты (если они есть) могут использоваться для других параметров или оставаться неиспользованными.
+
+  Пример:
+  Если "дирижер" хочет отправить команду CMD_MOVE_ABSOLUTE в позицию 50000 для Мотора 3 на Исполнителе 0:
+
+   1. Формируется Header:
+       * StdId: 0x100 | (0 << 3) | 3 = 0x103 (CAN ID для Исполнителя 0, Мотора 3)
+       * IDE: CAN_ID_STD
+       * RTR: CAN_RTR_DATA
+       * DLC: 1 (для CommandID_t) + 4 (для payload) = 5 байт.
+
+   2. Формируется Data (`uint8_t data[8]`):
+       * data[0] = CMD_MOVE_ABSOLUTE (0x01)
+       * data[1] = Байт 0 значения 50000
+       * data[2] = Байт 1 значения 50000
+       * data[3] = Байт 2 значения 50000
+       * data[4] = Байт 3 значения 50000
+       * data[5-7] = Не используются (но могут быть заполнены нулями)
+
+  Таким образом, header говорит "кто" и "что" это за сообщение, а data содержит само "содержание" сообщения.
+
+> готово, проект собирается
+
+✦ Отлично, проект собирается! Все CAN-очереди теперь настроены правильно.
+
+  Корректировка Task_CAN_Handler и Task_Command_Parser
+
+  Мы обнаружили небольшое несоответствие в том, что Task_CAN_Handler должен был бы передавать в parser_queueHandle.
+
+   * can_rx_queueHandle хранит CanFrame_t (полный сырой CAN-фрейм).
+   * parser_queueHandle должен хранить CAN_Command_t (распарсенную команду).
+
+  Значит, Task_CAN_Handler должен брать CanFrame_t из can_rx_queueHandle, парсить из него CAN_Command_t, и затем уже CAN_Command_t класть в parser_queueHandle.
+
+  Это значит, что Task_CAN_Handler возьмет на себя часть функционала "парсера" — извлечение CommandID_t, Motor_ID, Payload из сырого CAN-фрейма. Task_Command_Parser в свою очередь будет
+  заниматься уже диспетчеризацией этой CAN_Command_t. Это тоже хорошо разделяет обязанности.
+
+  ---
+
+  Этап 2.2: Реализация Task_CAN_Handler (Полная версия)
+
+  Откройте файл `App/src/tasks/task_can_handler.c`.
+
+   * Убедитесь, что там есть необходимые инклюды.
+   * Замените содержимое функции app_start_task_can_handler на следующий код:
+
+     1 #include "task_can_handler.h"
+     2 #include "main.h"           // Для HAL-функций, CAN_HandleTypeDef
+     3 #include "cmsis_os.h"       // Для osDelay, osMessageQueueXxx
+     4 #include "app_queues.h"     // Для хэндлов очередей
+     5 #include "command_protocol.h" // Для CAN_Command_t, CommandID_t
+     6 #include "app_config.h"     // Для CanFrame_t, CanTxFrame_t, CAN_DATA_MAX_LEN
+     7 
+     8 // --- Внешние хэндлы HAL ---
+     9 extern CAN_HandleTypeDef hcan; // Хэндл CAN-периферии из main.c
+    10 
+    11 // --- Глобальная переменная для хранения ID исполнителя (пока заглушка) ---
+    12 extern uint8_t g_performer_id;
+    13 
+    14 
+    15 void app_start_task_can_handler(void *argument)
+    16 {
+    17     (void)argument;
+    18 
+    19     CanFrame_t rx_frame;      // Буфер для входящего CAN-фрейма
+    20     CAN_Command_t parsed_command; // Буфер для распарсенной команды
+    21     CanTxFrame_t tx_frame;    // Буфер для исходящего CAN-фрейма
+    22 
+    23     uint32_t txMailbox; // Для HAL_CAN_AddTxMessage
+    24 
+    25     // --- Настройка CAN-фильтров ---
+    26     // Здесь будет логика настройки фильтра по Performer_ID (g_performer_id)
+    27     // Пока настроим простой фильтр, который принимает ВСЁ для FIFO0.
+    28     CAN_FilterTypeDef sFilterConfig;
+    29 
+    30     sFilterConfig.FilterBank = 0;
+    31     sFilterConfig.FilterMode = CAN_FILTERMODE_IDMASK; // Режим фильтрации по ID и маске
+    32     sFilterConfig.FilterScale = CAN_FILTERSCALE_32BIT; // 32-битная шкала
+    33     sFilterConfig.FilterIdHigh = 0x0000; // Пока принимаем все ID
+    34     sFilterConfig.FilterIdLow = 0x0000;
+    35     sFilterConfig.FilterMaskIdHigh = 0x0000; // Маска 0 означает, что все биты ID важны (если FilterMode IDLIST)
+    36     sFilterConfig.FilterMaskIdLow = 0x0000; // Маска 0 означает "принимать всё" в режиме IDMASK, если ID=0
+    37     sFilterConfig.FilterFIFOAssignment = CAN_RX_FIFO0; // Направляем в FIFO0
+    38     sFilterConfig.FilterActivation = ENABLE; // Активируем фильтр
+    39     sFilterConfig.SlaveStartFilterBank = 14; // Используем 0-й банк
+    40 
+    41     if (HAL_CAN_ConfigFilter(&hcan, &sFilterConfig) != HAL_OK) {
+    42         Error_Handler(); // Проблема с настройкой фильтра
+    43     }
+    44 
+    45     // --- Запуск CAN-контроллера ---
+    46     if (HAL_CAN_Start(&hcan) != HAL_OK) {
+    47         Error_Handler(); // Проблема с запуском CAN
+    48     }
+    49 
+    50     // --- Активация CAN RX прерываний ---
+    51     if (HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING) != HAL_OK) {
+    52         Error_Handler();
+    53     }
+    54 
+    55 
+    56     // Бесконечный цикл задачи
+    57     for(;;)
+    58     {
+    59         // --- 1. Обработка входящих сообщений (RX) ---
+    60         // Ждем полный CAN-фрейм от прерывания CAN_RxFifo0MsgPendingCallback
+    61         if (osMessageQueueGet(can_rx_queueHandle, &rx_frame, NULL, osWaitForever) == osOK) {
+    62             // --- Парсинг StdId для получения Performer_ID и Motor_ID ---
+    63             uint16_t std_id = rx_frame.header.StdId;
+    64             uint8_t received_performer_id = (std_id >> 3) & 0xF; // 4 бита ID исполнителя
+    65             uint8_t received_motor_id = std_id & 0x7;          // 3 бита ID мотора
+    66 
+    67             // --- Фильтрация по Performer ID ---
+    68             // Если ID исполнителя в сообщении не наш, игнорируем его
+    69             if (received_performer_id != g_performer_id) {
+    70                 // Если g_performer_id == 0xFF (не настроен) или received_performer_id == 0x0F (broadcast)
+    71                 // то все равно обрабатываем. Пока что просто игнорируем
+    72                  continue;
+    73             }
+    74 
+    75             // --- Парсинг поля данных в CAN_Command_t ---
+    76             parsed_command.motor_id = received_motor_id; // motor_id из StdId
+    77             parsed_command.command_id = (CommandID_t)rx_frame.data[0]; // CommandID_t из первого байта данных
+    78 
+    79             // Payload - это int32_t, занимает 4 байта, начиная со второго (index 1)
+    80             parsed_command.payload = (int32_t)rx_frame.data[1] |
+    81                                      ((int32_t)rx_frame.data[2] << 8) |
+    82                                      ((int32_t)rx_frame.data[3] << 16) |
+    83                                      ((int32_t)rx_frame.data[4] << 24);
+    84 
+    85 
+    86             // --- Отправка распарсенной команды в parser_queue ---
+    87             osMessageQueuePut(parser_queueHandle, &parsed_command, 0, 0);
+    88         }
+    89 
+    90         // --- 2. Обработка исходящих сообщений (TX) ---
+    91         // Ждем CanTxFrame_t от других задач
+    92         if (osMessageQueueGet(can_tx_queueHandle, &tx_frame, NULL, 0) == osOK) { // 0 - не блокировать, если очередь пуста
+    93             // Добавляем сообщение в аппаратную очередь CAN на передачу
+    94             if (HAL_CAN_AddTxMessage(&hcan, &tx_frame.header, tx_frame.data, &txMailbox) != HAL_OK) {
+    95                 // Ошибка при отправке сообщения. Можно добавить счетчик ошибок или повтор
+    96             }
+    97         }
+    98 
+    99         osDelay(1); // Небольшая задержка, чтобы избежать "голодания" других задач
+   100     }
+   101 }
+
+  ---
+
+  Важное дополнение:
+   * Чтобы Task_CAN_Handler могла видеть g_performer_id, нам нужно объявить эту переменную в main.c как глобальную.
+   * Откройте файл `Core/Src/main.c`.
+   * Найдите секцию /* USER CODE BEGIN PV */ (Private variables).
+   * Добавьте туда следующую строку:
+
+   1 /* USER CODE BEGIN PV */
+   2 // ... хэндлы очередей ...
+   3 // ... tmc_drivers ...
+   4 
+   5 // Глобальная переменная для хранения ID исполнителя
+   6 uint8_t g_performer_id = 0xFF; // 0xFF означает, что ID еще не установлен
+   7 /* USER CODE END PV */
+
+   * Также, чтобы Task_CAN_Handler мог использовать g_performer_id, нужно добавить extern uint8_t g_performer_id; в task_can_handler.c (я уже добавил это в новый код).
+
+  Соберите проект. Предупреждение о rxHeader исчезнет, так как теперь мы используем rx_frame.
+
+  Сообщите, когда будете готовы двигаться дальше.
+
+> уточненние, я изменил имя CAN Rx структуры на CanRxFrame_t по аналогии с CanTxFrame_t
+
+✦ Отлично! Это очень хорошее изменение для ясности и единообразия. CanRxFrame_t и CanTxFrame_t выглядят гораздо логичнее.
+
+  Давайте внесем эти изменения.
+
+  ---
+
+  1. Обновление App/inc/app_config.h
+
+   * Откройте файл `App/inc/app_config.h`.
+   * Найдите определение структуры CanFrame_t и переименуйте ее в CanRxFrame_t:
+
+   1 // Структура для хранения полного входящего CAN-фрейма (header + data)
+   2 typedef struct {
+   3     CAN_RxHeaderTypeDef header;
+   4     uint8_t data[CAN_DATA_MAX_LEN];
+   5 } CanRxFrame_t; // <-- ИЗМЕНЕНО НА CanRxFrame_t
+
+  ---
+
+  2. Обновление Core/Src/main.c (создание can_rx_queueHandle)
+
+   * Откройте файл `Core/Src/main.c`.
+   * Найдите строку создания can_rx_queueHandle в секции /* USER CODE BEGIN 2 */.
+   * Замените ее на:
+
+   1 can_rx_queueHandle = osMessageQueueNew(CAN_RX_QUEUE_LEN, sizeof(CanRxFrame_t), NULL); // <-- ИЗМЕНЕНО НА CanRxFrame_t
+
+  ---
+
+  3. Обновление Core/Src/stm32f1xx_it.c (Callback HAL_CAN_RxFifo0MsgPendingCallback)
+
+   * Откройте файл `Core/Src/stm32f1xx_it.c`.
+   * Измените тип переменной rx_frame и размер элемента очереди:
+
+    1 #include "app_config.h" // <-- Убедитесь, что этот инклюд есть
+    2 
+    3 // Callback-функция, вызываемая, когда в FIFO0 CAN1 появляется новое сообщение
+    4 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
+    5 {
+    6     CanRxFrame_t rx_frame; // <-- ИЗМЕНЕНО НА CanRxFrame_t
+    7 
+    8     // Извлекаем сообщение из аппаратного буфера CAN FIFO0
+    9     if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &rx_frame.header, rx_frame.data) == HAL_OK)
+   10     {
+   11         // Помещаем весь фрейм в очередь can_rx_queue для обработки
+   12         osMessageQueuePut(can_rx_queueHandle, &rx_frame, 0, 0);
+   13     }
+   14 }
+
+  ---
+
+  4. Обновление App/src/tasks/task_can_handler.c
+
+   * Откройте файл `App/src/tasks/task_can_handler.c`.
+   * Измените тип переменной rx_frame:
+
+   1 CanRxFrame_t rx_frame;      // <-- ИЗМЕНЕНО НА CanRxFrame_t
+
+  ---
+
+  После этих изменений соберите проект, чтобы убедиться, что все в порядке. Сообщите, когда будете готовы двигаться дальше.
+
+> что такое uint32_t StdId;    /*!< Specifies the standard identifier.
+                            This parameter must be a number between Min_Data = 0 and Max_Data = 0x7FF.?
+
+✦ uint32_t StdId; — это поле в структуре заголовка CAN-сообщения (CAN_TxHeaderTypeDef или CAN_RxHeaderTypeDef), которое играет ключевую роль в идентификации и маршрутизации CAN-фреймов.
+
+  Давайте разберем его:
+
+   1. `uint32_t`: Это тип данных. Означает "беззнаковое 32-битное целое число". То есть, это число, которое может хранить значения от 0 до 4,294,967,295 (2^32 - 1).
+
+   2. `StdId`: Это имя поля, сокращение от "Standard Identifier" (Стандартный идентификатор).
+
+   3. `This parameter must be a number between Min_Data = 0 and Max_Data = 0x7FF.`: Это комментарий из HAL-библиотеки, который поясняет ограничение.
+       * 0x7FF в шестнадцатеричной системе — это 2047 в десятичной.
+       * 0x7FF в двоичной системе — это 011 1111 1111. То есть, это максимально возможное число, которое можно записать с помощью 11 бит.
+
+  Суть StdId:
+
+  Стандарт CAN 2.0A определяет 11-битные идентификаторы. Это означает, что каждое сообщение в шине CAN должно иметь уникальный 11-битный номер.
+
+   * Идентификация: Этот номер используется для идентификации содержимого сообщения. Например, ID 0x100 может означать "скорость мотора", а ID 0x200 — "температура датчика".
+   * Приоритет: В шине CAN используется арбитраж по ID. Сообщение с меньшим числовым значением ID имеет более высокий приоритет и получает доступ к шине раньше.
+   * Адресация: В нашем проекте мы используем этот ID не только для идентификации типа сообщения, но и для адресации конкретного "исполнителя" и конкретного "мотора" на этом "исполнителе" с
+     помощью нашей иерархической схемы:
+      StdId = 0x100 | (ID_Исполнителя << 3) | ID_Мотора
+
+  Почему uint32_t, если это 11-битное число?
+
+  HAL-библиотека часто использует uint32_t для полей ID, чтобы:
+   * Упростить работу с регистрами микроконтроллера.
+   * Обеспечить выравнивание данных.
+   * Сделать код более универсальным (например, для 29-битных расширенных ID, которые хранятся в другом поле, но обрабатываются похожим образом).
+
+  Важно понимать, что хотя переменная имеет размер 32 бита, только младшие 11 бит этого значения имеют смысл для CAN-контроллера при работе со стандартными ID. Остальные биты (с 11 по 31)
+  игнорируются CAN-контроллером.
+
+> ок можно пример как обычно он заполняется?
+
+✦ Конечно, вот пример, как StdId заполняется в нашем проекте, используя нашу схему иерархической адресации.
+
+  Предположим:
+   * Наш ID_Исполнителя (g_performer_id) равен 0.
+   * Мы хотим отправить команду для Мотора №3.
+   * Базовый адрес для команд 0x100.
+
+    1 // Внутри какой-либо задачи, которая хочет отправить CAN-сообщение
+    2 // Например, Task_Command_Parser, когда он хочет отправить команду движения
+    3 
+    4 uint8_t my_current_performer_id = g_performer_id; // Предположим, g_performer_id = 0
+    5 uint8_t target_motor_id = 3; // Мотор, которому мы хотим отправить команду (например, Мотор 3)
+    6 
+    7 // Создаем структуру для отправляемого CAN-фрейма
+    8 CanTxFrame_t tx_frame;
+    9 
+   10 // --- Заполняем поле StdId в заголовке ---
+   11 // Используем нашу иерархическую схему: 0x100 | (ID_Исполнителя << 3) | ID_Мотора
+   12 tx_frame.header.StdId = 0x100 | (my_current_performer_id << 3) | target_motor_id;
+   13 // В данном примере StdId будет равен: 0x100 | (0 << 3) | 3 = 0x100 | 0 | 3 = 0x103
+   14 
+   15 // --- Заполняем остальные поля заголовка ---
+   16 tx_frame.header.IDE = CAN_ID_STD; // Используем стандартный 11-битный ID
+   17 tx_frame.header.RTR = CAN_RTR_DATA; // Это фрейм с данными (не запрос)
+   18 tx_frame.header.DLC = 5; // Например, 1 байт CommandID_t + 4 байта payload
+   19 
+   20 // --- Заполняем поле данных ---
+   21 // Например, хотим отправить команду CMD_MOVE_ABSOLUTE = 0x01 и payload = 50000
+   22 tx_frame.data[0] = CMD_MOVE_ABSOLUTE;
+   23 tx_frame.data[1] = (uint8_t)(50000 & 0xFF);         // Младший байт payload
+   24 tx_frame.data[2] = (uint8_t)((50000 >> 8) & 0xFF);
+   25 tx_frame.data[3] = (uint8_t)((50000 >> 16) & 0xFF);
+   26 tx_frame.data[4] = (uint8_t)((50000 >> 24) & 0xFF); // Старший байт payload
+   27 
+   28 // --- Отправляем фрейм в очередь на передачу ---
+   29 // osMessageQueuePut(can_tx_queueHandle, &tx_frame, 0, 0);
+
+  Таким образом, StdId содержит "адрес" получателя (исполнитель + мотор), а data содержит саму команду и ее параметры.
+
+> готово проект собирается
+
+✦ Отлично! То, что проект собирается, означает, что Task_CAN_Handler теперь настроен на прием и первичный парсинг CAN-фреймов, а также на передачу.
+
+  Мы завершили Этап 2.2: Реализация `Task_CAN_Handler`.
+
+  ---
+
+  Этап 2.3: Реализация Task_Command_Parser
+
+  Теперь Task_Command_Parser сможет получать уже распарсенные команды в формате CAN_Command_t и отправлять их дальше по назначению.
+
+  Откройте файл `App/src/tasks/task_command_parser.c`.
+
+   * Убедитесь, что там есть необходимые инклюды.
+   * Замените содержимое функции app_start_task_command_parser на следующий код:
+
+     1 #include "task_command_parser.h"
+     2 #include "main.h"             // Для HAL-функций
+     3 #include "cmsis_os.h"         // Для osDelay, osMessageQueueXxx
+     4 #include "command_protocol.h" // Для CAN_Command_t, CommandID_t
+     5 #include "app_queues.h"       // Для хэндлов очередей
+     6 #include "app_config.h"       // Для MotionCommand_t
+     7 
+     8 // --- Внешние хэндлы очередей ---
+     9 extern osMessageQueueId_t parser_queueHandle;      // От Task_CAN_Handler
+    10 extern osMessageQueueId_t motion_queueHandle;      // Для Task_Motion_Controller
+    11 extern osMessageQueueId_t tmc_manager_queueHandle; // Для Task_TMC_Manager
+    12 extern osMessageQueueId_t can_tx_queueHandle;      // Для отправки ответов
+    13 
+    14 // --- Внешняя глобальная переменная для хранения ID исполнителя ---
+    15 extern uint8_t g_performer_id;
+    16 
+    17 
+    18 void app_start_task_command_parser(void *argument)
+    19 {
+    20     (void)argument;
+    21 
+    22     CAN_Command_t received_command; // Буфер для принятой команды от CAN_Handler
+    23     MotionCommand_t motion_cmd;     // Буфер для команды движения, для Motion_Controller
+    24     CanTxFrame_t tx_response_frame; // Буфер для отправки ответов
+    25 
+    26     // --- Логика определения ID исполнителя (пока заглушка) ---
+    27     // В будущем здесь будет чтение ID из Flash.
+    28     // Пока для тестирования, примем, что наш ID = 0, если он еще не установлен
+    29     if (g_performer_id == 0xFF) {
+    30         g_performer_id = 0;
+    31     }
+    32 
+    33 
+    34     // Бесконечный цикл задачи
+    35     for(;;)
+    36     {
+    37         // 1. Ждем команду из очереди parser_queue (от Task_CAN_Handler)
+    38         if (osMessageQueueGet(parser_queueHandle, &received_command, NULL, osWaitForever) == osOK)
+    39         {
+    40             // --- 2. Фильтрация по Performer ID ---
+    41             // Если команда адресована конкретному исполнителю, а не всем
+    42             // (Motor_ID 0xFF означает широковещательную команду для всех моторов исполнителя)
+    43             // (received_command.motor_id >> 3) - это ID исполнителя, полученный из StdId в Task_CAN_Handler
+    44             // Сравниваем его с нашим g_performer_id
+    45             if (received_command.motor_id != 0xFF && (received_command.motor_id >> 3) != g_performer_id) {
+    46                 // Это не наша команда, игнорируем
+    47                 continue;
+    48             }
+    49 
+    50             // --- 3. Диспетчеризация команды ---
+    51             switch (received_command.command_id)
+    52             {
+    53                 // --- Команды движения ---
+    54                 case CMD_MOVE_ABSOLUTE:
+    55                 case CMD_MOVE_RELATIVE:
+    56                 case CMD_SET_SPEED:
+    57                 case CMD_SET_ACCELERATION:
+    58                 case CMD_STOP:
+    59                     // Заполняем структуру MotionCommand_t
+    60                     motion_cmd.motor_id = received_command.motor_id & 0x7; // Только ID мотора (0-7)
+    61                     motion_cmd.steps = received_command.payload; // Payload может быть шагами или скоростью
+    62                     // ... Пока не заполняем остальные поля MotionCommand_t, так как у нас нет motion_planner.c ...
+    63                     // ... motion_cmd.speed_steps_per_sec = ...
+    64                     // ... motion_cmd.acceleration_steps_per_sec2 = ...
+    65 
+    66                     // Отправляем команду движения в очередь Task_Motion_Controller
+    67                     osMessageQueuePut(motion_queueHandle, &motion_cmd, 0, 0);
+    68                     break;
+    69 
+    70                 // --- Команды для TMC-драйверов ---
+    71                 case CMD_GET_STATUS:
+    72                 case CMD_SET_CURRENT:
+    73                 case CMD_ENABLE_MOTOR:
+    74                     // Отправляем CAN_Command_t напрямую в очередь Task_TMC_Manager
+    75                     osMessageQueuePut(tmc_manager_queueHandle, &received_command, 0, 0);
+    76                     break;
+    77 
+    78                 // --- Специальные команды ---
+    79                 case CMD_PERFORMER_ID_SET:
+    80                     // Команда установки ID исполнителя (для провизионинга)
+    81                     // payload содержит новый ID
+    82                     g_performer_id = (uint8_t)received_command.payload;
+    83                     // TODO: Реализовать запись в Flash здесь
+    84                     // TODO: Отправить подтверждение через can_tx_queue
+    85 
+    86                     // Пример ответа:
+    87                     tx_response_frame.header.StdId = 0x200 | (g_performer_id << 3) | 0xFF; // Ответ от исполнителя
+    88                     tx_response_frame.header.IDE = CAN_ID_STD;
+    89                     tx_response_frame.header.RTR = CAN_RTR_DATA;
+    90                     tx_response_frame.header.DLC = 2;
+    91                     tx_response_frame.data[0] = CMD_PERFORMER_ID_SET;
+    92                     tx_response_frame.data[1] = g_performer_id; // Подтверждаем установленный ID
+    93                     osMessageQueuePut(can_tx_queueHandle, &tx_response_frame, 0, 0);
+    94                     break;
+    95 
+    96                 default:
+    97                     // Неизвестная команда
+    98                     // TODO: Отправить ошибку через can_tx_queue
+    99                     break;
+   100             }
+   101         }
+   102 
+   103         osDelay(1); // Небольшая задержка, чтобы избежать "голодания" других задач
+   104     }
+   105 }
+
+  
+  
   
   
   

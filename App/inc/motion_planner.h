@@ -10,6 +10,7 @@
 
 #include <stdint.h>
 
+
 // Максимальное количество шагов в секунду для базовых расчетов
 #define MAX_STEPS_PER_SEC 20000 // Пример: 20 кГц, может быть скорректировано
 
@@ -24,6 +25,7 @@ typedef struct {
     int32_t steps_to_go;            // Сколько шагов осталось сделать
     uint32_t step_pulse_period_us;  // Период STEP-импульса в микросекундах (для таймера)
     } MotorMotionState_t;
+
 
 // Прототипы функций планировщика движения
 void MotionPlanner_InitMotorState(MotorMotionState_t* state, int32_t initial_pos);

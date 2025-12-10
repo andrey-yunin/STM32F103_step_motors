@@ -26,6 +26,10 @@
 #include "cmsis_os.h"
 #include "app_queues.h" // Для can_rx_queueHandle
 #include "app_config.h" // Чтобы видеть CanFrame_t
+#include "motor_gpio.h"
+#include "motion_planner.h"
+#include "app_globals.h"
+
 
 
 /* USER CODE END Includes */
@@ -48,7 +52,7 @@
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
 
-// extern osMessageQueueId_t can_rx_queueHandle; // Уже объявлен extern в app_queues.h
+extern TIM_HandleTypeDef htim2;
 
 /* USER CODE END PV */
 
@@ -223,5 +227,37 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 		osMessageQueuePut(can_rx_queueHandle, &rx_frame, 0, 0); // priority 0, timeout 0 (немедленно)
 		}
 }
+
+// Callback функция для прерывания TIM2 Output Compare Channel 1
+void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
+{
+	if (htim->Instance == TIM2)
+		{
+		// TODO: В будущем здесь будет логика для нескольких моторов
+		// Пока обрабатываем только первый мотор (motor_id = 0)
+		uint8_t motor_id = 0; // Временно, для примера
+		if (motor_states[motor_id].steps_to_go > 0)
+			{
+			Motor_ToggleStepPin(motor_id); // Переключаем пин STEP
+			// Обновляем состояние мотора и получаем следующий период импульса
+			uint32_t next_pulse_period = MotionPlanner_GetNextPulsePeriod(&motor_states[motor_id]);
+			if (motor_states[motor_id].steps_to_go == 0)
+				{
+				// Движение завершено
+				HAL_TIM_OC_Stop_IT(htim, TIM_CHANNEL_1); // Останавливаем таймер
+				Motor_Disable(motor_id); // Отключаем драйвер
+				// TODO: Отправить сообщение в Task_Motion_Controller о завершении движения
+				}
+			else
+				{
+				// Обновляем период таймера для следующего импульса
+				__HAL_TIM_SET_AUTORELOAD(htim, next_pulse_period - 1);
+				__HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_1, (htim->Instance->CNT + (next_pulse_period / 2)) % next_pulse_period); // Установка точки сравнения для половины периода
+				}
+			}
+		}
+	}
+
+
 
 /* USER CODE END 1 */
