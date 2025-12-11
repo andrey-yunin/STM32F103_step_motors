@@ -555,8 +555,12 @@ static void MX_GPIO_Init(void)
   /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIO_GPIO_Port, GPIO_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, STEP_1_Pin|STEP_2_Pin|STEP_3_Pin|STEP_4_Pin
@@ -567,6 +571,13 @@ static void MX_GPIO_Init(void)
                           |EN_4_Pin|EN_5_Pin|EN_6_Pin|EN_7_Pin
                           |EN_8_Pin|DIR_4_Pin|DIR_5_Pin|DIR_6_Pin
                           |DIR_7_Pin|DIR_8_Pin|EN_1_Pin|EN_2_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : GPIO_Pin */
+  GPIO_InitStruct.Pin = GPIO_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIO_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : STEP_1_Pin STEP_2_Pin STEP_3_Pin STEP_4_Pin
                            STEP_5_Pin STEP_6_Pin STEP_7_Pin STEP_8_Pin */

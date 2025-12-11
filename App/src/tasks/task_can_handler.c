@@ -68,8 +68,21 @@ void app_start_task_can_handler(void *argument)
 		if (osMessageQueueGet(can_rx_queueHandle, &rx_frame, NULL, osWaitForever) == osOK) {
 		// --- Парсинг StdId для получения Performer_ID и Motor_ID ---
 		uint16_t std_id = rx_frame.header.StdId;
-		uint8_t received_performer_id = (std_id >> 3) & 0xF; // 4 бита ID исполнителя
-		uint8_t received_motor_id = std_id & 0x7;          // 3 бита ID мотора
+
+		// --- Парсинг StdId в соответствии с CAN_PROTOCOL.md ---
+		// Мы стандартизируем структуру ID для ясности и расширяемости.
+		// Согласно протоколу:
+		// - Биты 7-4: ID исполнителя (Performer ID), 4 бита, диапазон 0-15.
+		// - Биты 3-0: ID мотора (Motor ID), 4 бита, диапазон 0-15.
+		// received_performer_id: Чтобы получить биты 7-4, мы сдвигаем StdId вправо на 4 позиции.
+		// Затем применяем маску 0x0F (0b00001111), чтобы получить только эти 4 бита.
+
+		uint8_t received_performer_id = (std_id >> 4) & 0x0F;
+
+		// received_motor_id: Чтобы получить биты 3-0, нам не нужно сдвигать StdId.
+		// Просто применяем маску 0x0F (0b00001111), чтобы получить младшие 4 бита.
+		uint8_t received_motor_id     = std_id & 0x0F;
+
 
 		// --- Фильтрация по Performer ID ---
 		// Если ID исполнителя в сообщении не наш, игнорируем его
